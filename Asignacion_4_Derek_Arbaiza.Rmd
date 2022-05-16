@@ -1,0 +1,396 @@
+---
+title: ""
+author: ""
+date: ''
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(forcats)
+```
+
+
+```{r, echo=FALSE}
+TitanicData <- read.csv(file="titanic.csv", header = TRUE, sep=",", dec = ".")
+```
+
+## Análisis de pasajeros del Titanic por Derek Arbaiza Barrantes {.tabset .tabset-fade .tabset-pills}
+
+### Tabla de contenido
+* Introducción - Una pequeña reseña del hundimiento del Titanic.
+* Visualización de datos - Representación de la base de datos que se usa de fuente.
+* Gráficos - Visualización de gráficos
+* Datos y conclusiones - Datos obtenidos y conclusiones basados en estos.
+
+![Titanic partiendo de Southampton el 10 de abril de 1912.](https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/RMS_Titanic_3.jpg/450px-RMS_Titanic_3.jpg)
+
+### Introducción {#Introduccion}
+
+!["Untergang der Titanic" por Willy Stöwer, 1912](https://upload.wikimedia.org/wikipedia/commons/6/6e/St%C3%B6wer_Titanic.jpg)
+
+El Titanic se hundió en las primeras horas de la mañana del 15 de abril de 1912 en el Océano Atlántico Norte, cuatro días después de su viaje inaugural desde Southampton a la ciudad de Nueva York. El Titanic, el transatlántico más grande en servicio en ese momento,  chocó contra un iceberg alrededor de las 23:40 (hora del barco) el domingo 14 de abril de 1912. Se hundió dos horas y cuarenta minutos después; provocó la muerte de muchas personas, convirtiéndolo en uno de los desastres marítimos en tiempo de paz más mortíferos de la historia.
+
+El Titanic recibió seis advertencias de hielo marino el 14 de abril, pero viajaba a unos 22 nudos cuando sus vigías avistaron el iceberg. Incapaz de girar lo suficientemente rápido, el barco sufrió un golpe oblicuo que dobló su lado de estribor y abrió seis de sus dieciséis compartimentos al mar. El Titanic había sido diseñado para mantenerse a flote con cuatro de sus compartimentos delanteros inundados, pero no más, y la tripulación pronto se dio cuenta de que el barco se hundiría. Usaron bengalas de socorro y mensajes de radio (inalámbricos) para atraer ayuda mientras los pasajeros eran colocados en botes salvavidas.
+
+De acuerdo con la práctica existente, el sistema de botes salvavidas del Titanic fue diseñado para transportar pasajeros a embarcaciones de rescate cercanas, no para mantener a todos a bordo simultáneamente; por lo tanto, con el barco hundiéndose rápidamente y la ayuda aún a horas de distancia, no había refugio seguro para muchos de los pasajeros y la tripulación con solo 20 botes salvavidas, incluidos 4 botes salvavidas plegables. La mala gestión de la evacuación hizo que muchos barcos fueran botados antes de que estuvieran completamente llenos.
+
+Casi todos los que saltaron o cayeron al agua se ahogaron o murieron en cuestión de minutos debido a los efectos del golpe de frío y la incapacitación. La ayuda llegó aproximadamente una hora y media después del hundimiento y rescató a todos los sobrevivientes a las 09:15 del 15 de abril, unas nueve horas y media después de la colisión. El desastre conmocionó al mundo y provocó una indignación generalizada por la falta de botes salvavidas, las regulaciones laxas y el trato desigual de los pasajeros de tercera clase durante la evacuación. Investigaciones posteriores recomendaron cambios radicales en las regulaciones marítimas, lo que condujo al establecimiento en 1914 de la Convención Internacional para la Seguridad de la Vida Humana en el Mar (SOLAS).
+
+Fuentes:
+
+* [Sinking of the Titanic](https://en.wikipedia.org/wiki/Sinking_of_the_Titanic)
+
+* [Titanic | History, Sinking, Rescue, Survivors, Movies, & Facts](https://www.britannica.com/topic/Titanic)
+
+
+El siguiente mapa ubica los puertos de embarcación del Titanic y su sitio de hundimiento: 
+```{r, echo=FALSE}
+draw_route_map <- function(){
+par(mar=c(0,0,0,0))
+Southampton <- c(-1.42, 50.90)
+Cherbourg <- c(-1.66,49.65)
+Queenstown <- c(-8.29,51.85)
+Crashpoint <- c(-49.94, 41.73)
+data <- rbind(Southampton, Cherbourg, Queenstown, Crashpoint) %>% 
+  as.data.frame()
+colnames(data) <- c("long","lat")
+
+maps::map('world',
+    col="#d9ae79", fill=TRUE, bg="#f2e5d5", lwd=0.05,
+    mar=rep(0,4),border=0, ylim=c(-80,80) 
+)
+points(x=data$long, y=data$lat, col="#591902", cex=2, pch=10)
+}
+draw_route_map()
+```
+
+
+### Visualización de la data
+```{r, echo=FALSE}
+
+data <- data.frame(
+  Genero = c(TitanicData$Sex),
+  Sobrevivió = c(TitanicData$Survived),
+  Edad = c(TitanicData$Age),
+  Clase = c(TitanicData$Pclass),
+  Tarifa = c(TitanicData$Fare),
+  Puerto = c(TitanicData$Embarked)
+)
+data
+```
+
+### Gráficos
+
+#### Gráfico de pasajaros por clase de tiquete
+```{r, echo=FALSE}
+first_chart <- function(){
+  first_class <- 0 
+  second_class <- 0
+  third_class <- 0
+  for(i in 1:1309){
+    if(TitanicData$Pclass[i]==1){
+      first_class <- first_class + 1
+    }
+    else if(TitanicData$Pclass[i]==2){
+      second_class <- second_class + 1
+    }
+    else{
+      third_class <- third_class +1
+    }
+  }
+  result <- c(first_class, second_class, third_class)
+  
+  data <- data.frame(
+    group=c("Primera clase", "Segunda clase", "Tercera clase"),
+    value=result)
+  
+  ggplot(data, aes(x="", y=value, fill=group)) +
+    geom_bar(stat="identity", width=1, color="white") +
+    coord_polar("y", start=0) +
+    theme_void() + 
+    scale_fill_manual(values=c("#F2E5D5", "#A67C58", "#591902"))
+}
+first_chart()
+```
+
+Basado en el gráfico anterior, se ve el universo de los pasajeros dividos en 3 grupos.
+Representado las clases de los tiquetes.
+
+* Se puede observar que el grupo que más pasajeros llevaba es la tercera clase.
+
+* El grupo que menos pasajeros llevaba es la primera clase.
+
+******
+
+#### Gráfico de grupos de pasajeros por edad.
+
+```{r, echo=FALSE}
+second_chart <- function(){
+   noAge <- 0
+  range1 <- 0 
+  range2 <- 0
+  range3 <- 0 
+  range4 <- 0
+  range5 <- 0
+  range6 <- 0
+  range7 <- 0
+  range8 <- 0
+  range9 <- 0
+  range10 <- 0
+  for(i in 1:1309){
+    if(is.na(TitanicData$Age[i])){
+      noAge <- noAge + 1
+    }
+    else{
+      if(TitanicData$Age[i]>=0 & TitanicData$Age[i]<=10){
+        range1 <- range1 + 1
+      }
+      else if(TitanicData$Age[i]>=11 & TitanicData$Age[i]<=20){
+        range2 <- range2 + 1
+      }
+      else if(TitanicData$Age[i]>=21 & TitanicData$Age[i]<=30){
+        range3 <- range3 + 1
+      }
+      else if(TitanicData$Age[i]>=31 & TitanicData$Age[i]<=40){
+        range4 <- range4 + 1
+      }
+      else if(TitanicData$Age[i]>=41 & TitanicData$Age[i]<=50){
+        range5 <- range5 + 1
+      }
+      else if(TitanicData$Age[i]>=51 & TitanicData$Age[i]<=60){
+        range6 <- range6 + 1
+      }
+      else if(TitanicData$Age[i]>=61 & TitanicData$Age[i]<=70){
+        range7 <- range7 + 1
+      }
+      else if(TitanicData$Age[i]>=71 & TitanicData$Age[i]<=80){
+        range8 <- range8 + 1
+      }
+      else if(TitanicData$Age[i]>=81 & TitanicData$Age[i]<=90){
+        range9 <- range9 + 1
+      }
+      else{
+        range10 < range10 + 1
+      }
+    }
+  }
+  results <- c(noAge,
+               range1, 
+               range2, 
+               range3,
+               range4,
+               range5, 
+               range6,
+               range7, 
+               range8)
+  
+  data <- data.frame(
+    ranges=c("Desconocido",
+             "de 0 a 10",
+             "de 11 a 20",
+             "de 21 a 30",
+             "de 31 a 40",
+             "de 41 a 50",
+             "de 51 a 60",
+             "de 61 a 70",
+             "de 71 a 80"),
+    cantidad=results )
+  
+  
+  data %>%
+    ggplot( aes(x=ranges, y=cantidad)) +
+    geom_bar(stat="identity", fill="#591902", alpha=.6, width=.8) +
+    coord_flip() +
+    xlab("") +
+    theme_bw()
+}
+second_chart()
+```
+
+Observando el gráfico anterior, se puede determinar que:
+
+* El grupo de pasajeros de mayor cantidad es el de 21 a 30 años.
+
+* El grupo de pasajaros de menor cantidad es el de 71 a 80 años.
+
+* El grupo entre 31 y 40 años supera los 200 pasajeros, pero el grupo entre 51 y 60 apenas supera los 50 pasajeros. Este fenómeno se puede explicar a que la expectativa de vida en los años 1900s era de 50 a 55 años. 
+
+### Datos y conclusiones {#conclusions}
+
+#### Tabla de pasajeros sobrevivientes o fallecidos por género
+```{r, echo=FALSE}
+survivers_by_gender <- function(){
+  female_survivers <- 0
+  male_survivers <- 0
+  female_deads <- 0
+  male_deads <- 0
+  for(i in 1:1309){
+    if(TitanicData$Survived[i]==1){
+      if(TitanicData$Sex[i]=="female"){
+        female_survivers <- female_survivers + 1
+      }
+      else{
+        male_survivers <- male_survivers + 1
+      }
+    }
+    else{
+      if(TitanicData$Sex[i] == "female"){
+        female_deads <-  female_deads + 1
+      }
+      else{
+        male_deads <-  male_deads + 1
+      }
+    }
+  }
+  data_header <- c("Mujeres sobreviventes", "Hombres sobrevientes", "Mujeres fallecidas", "Hombres fallecidos")
+  Pasajeros <- c(female_survivers, male_survivers, female_deads, male_deads)
+  data_mix <- data.frame(row.names = data_header, Pasajeros)
+  return(data_mix)
+}
+survivers_by_gender()
+cat("Se puede concluir que sobrevivieron más mujeres que hombres y los hombres fueron quienes más fallecieron.")
+```
+
+******
+
+#### Datos de pasajeros
+```{r, echo=FALSE}
+get_max <- function(){
+max_age <- TitanicData$Age[1]
+max_name <- TitanicData$Name[1]
+  for(i in 2:1309){
+    if(is.na(TitanicData$Age[i])){
+      
+    }
+    else{
+      if(max_age < TitanicData$Age[i]){
+        max_age <- TitanicData$Age[i]
+        max_name <- TitanicData$Name[i]
+      }
+    }
+  }
+  return(cat("El pasajero de mayor edad era:", max_name, "y su edad era de", max_age, "años."))
+}
+
+get_min <- function(){
+min_age <- TitanicData$Age[1]
+min_name <- TitanicData$Name[1]
+  for(i in 1:1309){
+    if(is.na(TitanicData$Age[i])){
+      
+    }
+    else{
+      if(min_age > TitanicData$Age[i]){
+        min_age <- TitanicData$Age[i]
+        min_name <- TitanicData$Name[i]
+      }
+    }
+  }
+  return(cat("El pasajero de menor edad era:", min_name, "y su edad era de", min_age, "meses."))
+}
+
+get_max()
+get_min()
+
+
+get_max_dead <- function(){
+max_age <- TitanicData$Age[1]
+max_name <- TitanicData$Name[1]
+  for(i in 2:1309){
+    if(is.na(TitanicData$Age[i]) & TitanicData$Survived[i]==0){
+      
+    }
+    else{
+      if(max_age < TitanicData$Age[i] & TitanicData$Survived[i]==0){
+        max_age <- TitanicData$Age[i]
+        max_name <- TitanicData$Name[i]
+      }
+    }
+  }
+  return(cat("La víctima de mayor edad era:", max_name, "y su edad era de", max_age, "años."))
+}
+get_max_dead()
+
+get_less_dead <- function(){
+min_age <- TitanicData$Age[1]
+min_name <- TitanicData$Name[1]
+  for(i in 2:1309){
+    if(is.na(TitanicData$Age[i]) & TitanicData$Survived[i]==0){
+      
+    }
+    else{
+      if(min_age > TitanicData$Age[i] & TitanicData$Survived[i]==0){
+        min_age <- TitanicData$Age[i]
+        min_name <- TitanicData$Name[i]
+      }
+    }
+  }
+  return(cat("La víctima de menor edad era:", min_name, "y su edad era de", min_age, "meses."))
+}
+get_less_dead()
+```
+
+*****
+#### Datos de tiquetes
+```{r, echo=FALSE}
+get_average <- function(){
+sumAve <- 0
+counter <- 0
+for(i in 1:1309){
+  if(is.na(TitanicData$Fare[i])){
+    
+  }
+  else{
+    sumAve <- sumAve + TitanicData$Fare[i]
+    counter <- counter + 1
+    }
+  }
+return(cat("El promedio del costo del tiquete era de: $",sumAve/counter))
+}
+get_average()
+cat("El costo de ese mismo tiquete de 33$ a la inflación de este año, sería de $970.12")
+
+get_max_fare <- function(){
+  max_fare <- 0
+  for(i in 1:1309){
+    if(is.na(TitanicData$Fare[i])){
+      
+    }
+    else{
+      if(max_fare < TitanicData$Fare[i]){
+        max_fare <- TitanicData$Fare[i]
+      }
+    }
+  }
+  cat("El tiquete de mayor precio fue de:", max_fare)
+}
+get_max_fare()
+```
+
+*****
+#### Datos de puertos
+```{r, echo=FALSE}
+nautical_ports_counter <- function(){
+  Southampton_England <- 0 
+  Cherbourg_France <- 0
+  Queenstown_Ireland <- 0
+    for(i in 1:1309){
+      if(TitanicData$Embarked[i]=="S"){
+        Southampton_England <- Southampton_England+1
+      }
+      else if(TitanicData$Embarked[i]=="C"){
+         Cherbourg_France <-   Cherbourg_France+1
+      }
+      else{
+        Queenstown_Ireland <- Queenstown_Ireland +1
+      }
+    }
+  cat("Cantidad de personas que embarcaron en Southampton, Inglaterra:", Southampton_England, "\nCantidad de personas que embarcaron en Cherbourg, Francia:", Cherbourg_France, "\nCantidad de personas que embarcaron en Queenstown, Irlanda", Queenstown_Ireland)
+}
+nautical_ports_counter()
+cat("Se puede concluir que la mayoría de personas embarcaron en Inglaterra y donde menos embarcaron fue en Irlanda.")
+```
+
+
